@@ -1,0 +1,244 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  event-tracker
+
+  Sample SAM Template for event-tracker
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 60
+
+Resources:
+  EventApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration: REGIONAL
+      DefinitionBody: 
+        swagger: 2.0
+        info:
+          title: EventSource API Definition
+        paths:
+          /events/{id}:
+            get:
+              summary: Get an event details
+              description: Retrieve specific event
+              parameters:
+              - name: id
+                in: path
+                required: true
+                type: string
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              x-amazon-apigateway-integration:
+                uri:
+                  #Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:770212352465:function:eventGetAll/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEventsFunction.Arn}/invocations
+                responses: {}
+                httpMethod: POST
+                type: aws_proxy
+            put:
+              summary: Update an event
+              description: Update an event
+              parameters:
+              - name: id
+                in: path
+                required: true
+                type: string
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              x-amazon-apigateway-integration:
+                uri:                  
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PutEventFunction.Arn}/invocations
+                responses: {}
+                httpMethod: POST
+                type: aws_proxy
+            delete:
+              summary: Delete an event
+              description: Delete an event
+              parameters:
+              - name: id
+                in: path
+                required: true
+                type: string
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              x-amazon-apigateway-integration:
+                uri:                  
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteEventFunction.Arn}/invocations
+                responses: {}
+                httpMethod: POST
+                type: aws_proxy
+          /events:
+            get:
+              summary: List event(s)
+              description: Retrieve specific event or all if id is not provided
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              x-amazon-apigateway-integration:
+                uri:                  
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEventsFunction.Arn}/invocations
+                responses: {}
+                httpMethod: POST
+                type: aws_proxy
+            post:
+              summary: Create a new event
+              description: Create a new event 
+              parameters:
+              - name: NewEvent
+                in: body
+                description: New event details.
+                schema:
+                  $ref: '#/definitions/Event'
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              x-amazon-apigateway-integration:
+                uri:                  
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateEventFunction.Arn}/invocations
+                responses: {}
+                httpMethod: POST
+                type: aws_proxy
+
+        definitions:
+          User:
+            properties:
+              visitor_id:
+                type: string
+                description: visitor id of the user
+              user_agent:
+                type: string
+                description: user agent of the user
+              anonym_ip:
+                type: string
+                description: ip address
+              device:
+                type: string
+                description: device type
+              logged_in:
+                type: boolean
+                description: login status
+              encrypted_email:
+                type: string
+                description: encrypted email
+          Event:
+            properties:
+              user:
+                $ref: User
+
+# Function definitions              
+  GetEventsFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: event-tracker/
+      Handler: get.lambda_handler
+      Runtime: python3.7
+      FunctionName: eventGet
+      Role: arn:aws:iam::770212352465:role/awsLambdaFullAccess
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref EventTrackerDynamoDBTable
+  
+  CreateEventFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: event-tracker/
+      Handler: post.lambda_handler
+      Runtime: python3.7
+      FunctionName: eventCreate
+      Role: arn:aws:iam::770212352465:role/awsLambdaFullAccess
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref EventTrackerDynamoDBTable
+
+  PutEventFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: event-tracker/
+      Handler: put.lambda_handler
+      Runtime: python3.7
+      FunctionName: eventPut
+      Role: arn:aws:iam::770212352465:role/awsLambdaFullAccess
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref EventTrackerDynamoDBTable
+
+  DeleteEventFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: event-tracker/
+      Handler: delete.lambda_handler
+      Runtime: python3.7
+      FunctionName: eventDelete
+      Role: arn:aws:iam::770212352465:role/awsLambdaFullAccess
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref EventTrackerDynamoDBTable
+ 
+ # Sets permission for the Lmbda functions
+  ConfigGetEventsFunctionLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetEventsFunction
+      Principal: apigateway.amazonaws.com
+
+  ConfigCreateEventFunctionLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CreateEventFunction
+      Principal: apigateway.amazonaws.com
+
+  ConfigPutEventFunctionLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PutEventFunction
+      Principal: apigateway.amazonaws.com
+  
+  ConfigDeleteEventFunctionLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DeleteEventFunction
+      Principal: apigateway.amazonaws.com
+
+# DynamoDB table definition      
+  EventTrackerDynamoDBTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      AttributeDefinitions: 
+        - 
+          AttributeName: "visitor_id"
+          AttributeType: "S"
+
+      KeySchema: 
+        - 
+          AttributeName: "visitor_id"
+          KeyType: "HASH"
+
+      ProvisionedThroughput: 
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      TableName: "eventStore"
+      
+         
+Outputs:
+  GetEventsGetEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage for Post/Put and GetAll"
+    Value: !Sub "https://${EventApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/events/"
+
+
+
