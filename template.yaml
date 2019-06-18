@@ -4,8 +4,6 @@ Description: >
   event-tracker
 
   Sample SAM Template for event-tracker
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 60
@@ -16,6 +14,7 @@ Resources:
     Properties:
       StageName: Prod
       EndpointConfiguration: REGIONAL
+      DefinitionBody: 
       DefinitionBody: 
         swagger: 2.0
         info:
@@ -35,8 +34,7 @@ Resources:
               produces:
                 - application/json
               x-amazon-apigateway-integration:
-                uri:
-                  #Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:770212352465:function:eventGetAll/invocations
+                uri:                  
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEventsFunction.Arn}/invocations
                 responses: {}
                 httpMethod: POST
@@ -145,7 +143,7 @@ Resources:
       Handler: get.lambda_handler
       Runtime: python3.7
       FunctionName: eventGet
-      Role: arn:aws:iam::770212352465:role/awsLambdaFullAccess
+      Role: <role-for-lambda-to-call-cloudwatch-dynamodb>
       Environment:
         Variables:
           TABLE_NAME: !Ref EventTrackerDynamoDBTable
@@ -157,7 +155,7 @@ Resources:
       Handler: post.lambda_handler
       Runtime: python3.7
       FunctionName: eventCreate
-      Role: arn:aws:iam::770212352465:role/awsLambdaFullAccess
+      Role: <role-for-lambda-to-call-cloudwatch-dynamodb>
       Environment:
         Variables:
           TABLE_NAME: !Ref EventTrackerDynamoDBTable
@@ -169,7 +167,7 @@ Resources:
       Handler: put.lambda_handler
       Runtime: python3.7
       FunctionName: eventPut
-      Role: arn:aws:iam::770212352465:role/awsLambdaFullAccess
+      Role: <role-for-lambda-to-call-cloudwatch-dynamodb>
       Environment:
         Variables:
           TABLE_NAME: !Ref EventTrackerDynamoDBTable
@@ -181,7 +179,7 @@ Resources:
       Handler: delete.lambda_handler
       Runtime: python3.7
       FunctionName: eventDelete
-      Role: arn:aws:iam::770212352465:role/awsLambdaFullAccess
+      Role: <role-for-lambda-to-call-cloudwatch-dynamodb>
       Environment:
         Variables:
           TABLE_NAME: !Ref EventTrackerDynamoDBTable
