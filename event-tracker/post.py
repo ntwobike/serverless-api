@@ -4,12 +4,11 @@ import os
 
 dynamodb = boto3.resource('dynamodb')
 
-
 def lambda_handler(event, context):
     table = dynamodb.Table(os.environ['TABLE_NAME'])    
     user = json.loads(event['body'])['user']
     response = None
-    
+
     table.put_item(
         Item={
            'visitor_id': user['visitor_id'],
@@ -21,7 +20,7 @@ def lambda_handler(event, context):
            
         }
     )
-    print()
+
     return {
         'statusCode': 201,
         'body': json.dumps('User saved successfully')
