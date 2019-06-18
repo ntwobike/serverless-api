@@ -15,7 +15,6 @@ Resources:
       StageName: Prod
       EndpointConfiguration: REGIONAL
       DefinitionBody: 
-      DefinitionBody: 
         swagger: 2.0
         info:
           title: EventSource API Definition
